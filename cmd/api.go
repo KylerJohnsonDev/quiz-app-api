@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/kylerjohnsondev/quiz-app-api/internal/questions"
 )
 
 type application struct {
@@ -29,6 +30,10 @@ func (app *application) mount() http.Handler {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Hello World!"))
 	})
+
+	questionService := questions.NewService()
+	questionHandler := questions.NewHandler(questionService)
+	r.Get("/questions", questionHandler.FetchQuestions)
 
 	return r
 }
