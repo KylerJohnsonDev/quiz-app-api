@@ -3,11 +3,14 @@ package questions
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 )
 
 type Answers struct {
@@ -41,7 +44,7 @@ type Question struct {
 }
 
 type Service interface {
-	FetchQuestions(ctx context.Context) ([]Question, error)
+	FetchQuestions(ctx context.Context, category string, difficulty string, limit string) ([]Question, error)
 }
 
 // Because *svc has a FetchQuestions method with the same signature as Service.FetchQuestions,
@@ -55,12 +58,32 @@ func NewService() Service {
 
 const QUIZ_API_URL string = "https://quizapi.io/api/v1/questions"
 
-func (s *svc) FetchQuestions(ctx context.Context) ([]Question, error) {
+func (s *svc) FetchQuestions(ctx context.Context, category string, difficulty string, limit string) ([]Question, error) {
 	api_key := os.Getenv("QUIZ_APP_API_KEY")
 
 	params := url.Values{}
 	params.Set("apiKey", api_key)
-	params.Set("limit", "10")
+
+	if category != "" {
+		params.Set("category", category)
+	}
+
+	if difficulty != "" {
+		if difficulty == "easy" || difficulty == "medium" || difficulty == "hard" {
+			params.Set("difficulty", difficulty)
+		} else {
+			logMessage := fmt.Sprintf("Query parameter not one of 'easy', 'medium', 'hard'. Received %s.", difficulty)
+			slog.Warn(logMessage)
+		}
+	}
+
+	limitInt, convLimitParamErr := strconv.ParseUint(limit, 0, 8) // max 255
+	if convLimitParamErr != nil || limitInt == 0 {
+		// default to 10 if limit not provided
+		params.Set("limit", "10")
+	} else {
+		params.Set("limit", limit)
+	}
 
 	parsedUrl, err0 := url.Parse(QUIZ_API_URL)
 	if err0 != nil {

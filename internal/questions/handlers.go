@@ -16,7 +16,10 @@ func NewHandler(service Service) *handler {
 }
 
 func (h *handler) FetchQuestions(w http.ResponseWriter, r *http.Request) {
-	questions, err := h.service.FetchQuestions(r.Context())
+	category := r.URL.Query().Get("category")
+	difficulty := r.URL.Query().Get("difficulty")
+	limit := r.URL.Query().Get("limit")
+	questions, err := h.service.FetchQuestions(r.Context(), category, difficulty, limit)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
