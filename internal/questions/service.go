@@ -9,8 +9,9 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
+
+	"github.com/kylerjohnsondev/quiz-app-api/internal/utils"
 )
 
 type Answers struct {
@@ -56,13 +57,17 @@ func NewService() Service {
 	return &svc{}
 }
 
-const QUIZ_API_URL string = "https://quizapi.io/api/v1/questions"
-
 func (s *svc) FetchQuestions(ctx context.Context, category string, difficulty string, limit string) ([]Question, error) {
-	api_key := os.Getenv("QUIZ_APP_API_KEY")
+	quizApiConfig := utils.GetQuizApiConfig()
+
+	questionsUrl, joinPathError := url.JoinPath(quizApiConfig.BaseUrl, "questions")
+	if joinPathError != nil {
+		log.Fatal(joinPathError)
+		return nil, joinPathError
+	}
 
 	params := url.Values{}
-	params.Set("apiKey", api_key)
+	params.Set("apiKey", quizApiConfig.ApiKey)
 
 	if category != "" {
 		params.Set("category", category)
@@ -85,7 +90,7 @@ func (s *svc) FetchQuestions(ctx context.Context, category string, difficulty st
 		params.Set("limit", limit)
 	}
 
-	parsedUrl, err0 := url.Parse(QUIZ_API_URL)
+	parsedUrl, err0 := url.Parse(questionsUrl)
 	if err0 != nil {
 		log.Fatal(err0.Error())
 		return nil, err0

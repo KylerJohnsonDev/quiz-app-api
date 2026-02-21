@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/kylerjohnsondev/quiz-app-api/internal/categories"
 	"github.com/kylerjohnsondev/quiz-app-api/internal/questions"
 )
 
@@ -34,6 +35,10 @@ func (app *application) mount() http.Handler {
 	questionService := questions.NewService()
 	questionHandler := questions.NewHandler(questionService)
 	r.Get("/questions", questionHandler.FetchQuestions)
+
+	categoryService := categories.NewService()
+	categoryHandler := categories.NewHandler(categoryService)
+	r.Get("/categories", categoryHandler.FetchCategories)
 
 	return r
 }

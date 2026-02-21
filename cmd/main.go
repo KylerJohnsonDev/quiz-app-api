@@ -3,9 +3,14 @@ package main
 import (
 	"log/slog"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	// load .env so it's available
+	_ = godotenv.Load() // Load .env from cwd; ok if file doesn't exist
+
 	cfg := config{
 		addr: ":8080",
 		db:   dbConfig{},
