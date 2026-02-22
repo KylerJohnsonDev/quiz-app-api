@@ -68,8 +68,6 @@ func (s *svc) FetchQuestions(ctx context.Context, category string, difficulty st
 	}
 
 	params := url.Values{}
-	params.Set("apiKey", quizApiConfig.ApiKey)
-
 	if category != "" {
 		params.Set("category", category)
 	}
@@ -104,6 +102,7 @@ func (s *svc) FetchQuestions(ctx context.Context, category string, difficulty st
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("X-Api-Key", quizApiConfig.ApiKey)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

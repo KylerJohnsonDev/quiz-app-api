@@ -61,21 +61,17 @@ func (s *svc) FetchCategories(ctx context.Context) ([]Category, error) {
 		return nil, pathJoinError
 	}
 
-	params := url.Values{}
-	params.Set("apiKey", quizApiConfig.ApiKey)
-
 	parsedUrl, err := url.Parse(categoriesUrl)
 	if err != nil {
 		log.Print(err)
 		return nil, err
 	}
 
-	parsedUrl.RawQuery = params.Encode()
-
 	req, createRequestError := http.NewRequestWithContext(ctx, http.MethodGet, parsedUrl.String(), nil)
 	if createRequestError != nil {
 		return nil, createRequestError
 	}
+	req.Header.Set("X-Api-Key", quizApiConfig.ApiKey)
 
 	resp, requestError := http.DefaultClient.Do(req)
 	if requestError != nil {
