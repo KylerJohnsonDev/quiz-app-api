@@ -7,15 +7,22 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"sync"
+	"time"
 
 	"github.com/kylerjohnsondev/quiz-app-api/internal/utils"
 )
+
+const cacheTTL = 24 * time.Hour
 
 type Service interface {
 	FetchCategories(ctx context.Context) ([]Category, error)
 }
 
 type svc struct {
+	mu       sync.RWMutex
+	cached   []Category
+	cacheExp time.Time
 }
 
 func NewService() Service {
@@ -28,10 +35,30 @@ type Category struct {
 }
 
 func (s *svc) FetchCategories(ctx context.Context) ([]Category, error) {
+	// Return cached result if still valid.
+	s.mu.RLock()
+	if time.Now().Before(s.cacheExp) && len(s.cached) > 0 {
+		result := make([]Category, len(s.cached))
+		copy(result, s.cached)
+		s.mu.RUnlock()
+		return result, nil
+	}
+	s.mu.RUnlock()
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	// Double-check after acquiring write lock (another goroutine may have refreshed).
+	if time.Now().Before(s.cacheExp) && len(s.cached) > 0 {
+		result := make([]Category, len(s.cached))
+		copy(result, s.cached)
+		return result, nil
+	}
+
 	quizApiConfig := utils.GetQuizApiConfig()
 	categoriesUrl, pathJoinError := url.JoinPath(quizApiConfig.BaseUrl, "categories")
 	if pathJoinError != nil {
-		log.Fatal(pathJoinError.Error())
+		log.Print(pathJoinError)
+		return nil, pathJoinError
 	}
 
 	params := url.Values{}
@@ -39,7 +66,8 @@ func (s *svc) FetchCategories(ctx context.Context) ([]Category, error) {
 
 	parsedUrl, err := url.Parse(categoriesUrl)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Print(err)
+		return nil, err
 	}
 
 	parsedUrl.RawQuery = params.Encode()
@@ -57,7 +85,7 @@ func (s *svc) FetchCategories(ctx context.Context) ([]Category, error) {
 
 	body, readAllError := io.ReadAll(resp.Body)
 	if readAllError != nil {
-		log.Fatal(readAllError.Error())
+		log.Print(readAllError)
 		return nil, readAllError
 	}
 
@@ -67,5 +95,7 @@ func (s *svc) FetchCategories(ctx context.Context) ([]Category, error) {
 		return nil, unmarshallingError
 	}
 
+	s.cached = categories
+	s.cacheExp = time.Now().Add(cacheTTL)
 	return categories, nil
 }

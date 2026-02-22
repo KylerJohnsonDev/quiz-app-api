@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/kylerjohnsondev/quiz-app-api/internal/utils"
 )
@@ -62,7 +63,7 @@ func (s *svc) FetchQuestions(ctx context.Context, category string, difficulty st
 
 	questionsUrl, joinPathError := url.JoinPath(quizApiConfig.BaseUrl, "questions")
 	if joinPathError != nil {
-		log.Fatal(joinPathError)
+		log.Print(joinPathError)
 		return nil, joinPathError
 	}
 
@@ -74,8 +75,9 @@ func (s *svc) FetchQuestions(ctx context.Context, category string, difficulty st
 	}
 
 	if difficulty != "" {
-		if difficulty == "easy" || difficulty == "medium" || difficulty == "hard" {
-			params.Set("difficulty", difficulty)
+		difficultyLowercase := strings.ToLower(difficulty)
+		if difficultyLowercase == "easy" || difficultyLowercase == "medium" || difficultyLowercase == "hard" {
+			params.Set("difficulty", difficultyLowercase)
 		} else {
 			logMessage := fmt.Sprintf("Query parameter not one of 'easy', 'medium', 'hard'. Received %s.", difficulty)
 			slog.Warn(logMessage)
@@ -92,7 +94,7 @@ func (s *svc) FetchQuestions(ctx context.Context, category string, difficulty st
 
 	parsedUrl, err0 := url.Parse(questionsUrl)
 	if err0 != nil {
-		log.Fatal(err0.Error())
+		log.Print(err0)
 		return nil, err0
 	}
 
@@ -111,14 +113,14 @@ func (s *svc) FetchQuestions(ctx context.Context, category string, difficulty st
 
 	body, err2 := io.ReadAll(resp.Body)
 	if err2 != nil {
-		log.Fatal(err2.Error())
+		log.Print(err2)
 		return nil, err2
 	}
 
 	questions := []Question{}
 	err3 := json.Unmarshal(body, &questions)
 	if err3 != nil {
-		log.Fatal(err3.Error())
+		log.Print(err3)
 		return nil, err3
 	}
 	return questions, nil
