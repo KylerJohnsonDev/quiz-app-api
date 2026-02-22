@@ -3,6 +3,8 @@ package questions
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/kylerjohnsondev/quiz-app-api/internal/httperror"
 )
 
 type handler struct {
@@ -21,6 +23,14 @@ func (h *handler) FetchQuestions(w http.ResponseWriter, r *http.Request) {
 	limit := r.URL.Query().Get("limit")
 	questions, err := h.service.FetchQuestions(r.Context(), category, difficulty, limit)
 	if err != nil {
+		if httpErr, ok := err.(*httperror.HTTPError); ok {
+			if httpErr.ContentType != "" {
+				w.Header().Set("Content-Type", httpErr.ContentType)
+			}
+			w.WriteHeader(httpErr.StatusCode)
+			w.Write(httpErr.Body)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

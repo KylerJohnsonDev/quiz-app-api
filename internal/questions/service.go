@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/kylerjohnsondev/quiz-app-api/internal/httperror"
 	"github.com/kylerjohnsondev/quiz-app-api/internal/utils"
 )
 
@@ -114,6 +115,14 @@ func (s *svc) FetchQuestions(ctx context.Context, category string, difficulty st
 	if err2 != nil {
 		log.Print(err2)
 		return nil, err2
+	}
+
+	if resp.StatusCode >= 400 {
+		return nil, &httperror.HTTPError{
+			StatusCode:  resp.StatusCode,
+			Body:        body,
+			ContentType: resp.Header.Get("Content-Type"),
+		}
 	}
 
 	questions := []Question{}

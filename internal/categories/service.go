@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/kylerjohnsondev/quiz-app-api/internal/httperror"
 	"github.com/kylerjohnsondev/quiz-app-api/internal/utils"
 )
 
@@ -83,6 +84,14 @@ func (s *svc) FetchCategories(ctx context.Context) ([]Category, error) {
 	if readAllError != nil {
 		log.Print(readAllError)
 		return nil, readAllError
+	}
+
+	if resp.StatusCode >= 400 {
+		return nil, &httperror.HTTPError{
+			StatusCode:  resp.StatusCode,
+			Body:        body,
+			ContentType: resp.Header.Get("Content-Type"),
+		}
 	}
 
 	categories := []Category{}
